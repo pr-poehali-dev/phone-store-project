@@ -37,6 +37,20 @@ interface CartItem {
   quantity: number
 }
 
+interface OrderForm {
+  email: string
+  phone: string
+  firstName: string
+  lastName: string
+  address: string
+  city: string
+  postalCode: string
+  cardNumber: string
+  expiryDate: string
+  cvv: string
+  cardHolder: string
+}
+
 type SortOption = 'default' | 'price-asc' | 'price-desc' | 'popularity' | 'new'
 
 const products: Product[] = [
@@ -195,6 +209,20 @@ function Index() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [selectedColor, setSelectedColor] = useState('')
   const [selectedStorage, setSelectedStorage] = useState('')
+  const [orderForm, setOrderForm] = useState<OrderForm>({
+    email: '',
+    phone: '',
+    firstName: '',
+    lastName: '',
+    address: '',
+    city: '',
+    postalCode: '',
+    cardNumber: '',
+    expiryDate: '',
+    cvv: '',
+    cardHolder: ''
+  })
+  const [isProcessingOrder, setIsProcessingOrder] = useState(false)
 
   const filteredAndSortedProducts = () => {
     const filtered = selectedBrand === 'all' 
@@ -287,6 +315,75 @@ function Index() {
 
   const getCartItemsCount = () => {
     return cartItems.reduce((total, item) => total + item.quantity, 0)
+  }
+
+  const formatCardNumber = (value: string) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '')
+    const matches = v.match(/\d{4,16}/g)
+    const match = matches && matches[0] || ''
+    const parts = []
+    
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4))
+    }
+    
+    if (parts.length) {
+      return parts.join(' ')
+    } else {
+      return v
+    }
+  }
+
+  const formatExpiryDate = (value: string) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '')
+    if (v.length >= 2) {
+      return v.substring(0, 2) + (v.length > 2 ? '/' + v.substring(2, 4) : '')
+    }
+    return v
+  }
+
+  const handleOrderFormChange = (field: keyof OrderForm, value: string) => {
+    let formattedValue = value
+    
+    if (field === 'cardNumber') {
+      formattedValue = formatCardNumber(value)
+    } else if (field === 'expiryDate') {
+      formattedValue = formatExpiryDate(value)
+    } else if (field === 'cvv') {
+      formattedValue = value.replace(/[^0-9]/gi, '').substring(0, 3)
+    } else if (field === 'postalCode') {
+      formattedValue = value.replace(/[^0-9]/gi, '').substring(0, 6)
+    }
+    
+    setOrderForm(prev => ({ ...prev, [field]: formattedValue }))
+  }
+
+  const processOrder = async () => {
+    setIsProcessingOrder(true)
+    
+    // Имитация обработки заказа
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    // Очищаем корзину и форму после успешного заказа
+    setCartItems([])
+    setOrderForm({
+      email: '',
+      phone: '',
+      firstName: '',
+      lastName: '',
+      address: '',
+      city: '',
+      postalCode: '',
+      cardNumber: '',
+      expiryDate: '',
+      cvv: '',
+      cardHolder: ''
+    })
+    
+    setIsProcessingOrder(false)
+    setActiveSection('catalog')
+    
+    alert('Заказ успешно оформлен! Спасибо за покупку!')
   }
 
   const handleAuth = (e: React.FormEvent) => {
@@ -568,7 +665,11 @@ function Index() {
                         <span>К оплате:</span>
                         <span>{formatPrice(getCartTotal())}</span>
                       </div>
-                      <Button className="w-full" size="lg">
+                      <Button 
+                        className="w-full" 
+                        size="lg"
+                        onClick={() => setActiveSection('checkout')}
+                      >
                         <Icon name="CreditCard" size={20} className="mr-2" />
                         Оформить заказ
                       </Button>
@@ -673,6 +774,253 @@ function Index() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        )
+
+      case 'checkout':
+        return (
+          <div className="max-w-4xl mx-auto space-y-6">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold">Оформление заказа</h2>
+              <p className="text-muted-foreground">Заполните данные для доставки и оплаты</p>
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-8">
+              {/* Форма заказа */}
+              <div className="space-y-6">
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Контактная информация</h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="firstName">Имя</Label>
+                        <Input
+                          id="firstName"
+                          value={orderForm.firstName}
+                          onChange={(e) => handleOrderFormChange('firstName', e.target.value)}
+                          placeholder="Введите имя"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="lastName">Фамилия</Label>
+                        <Input
+                          id="lastName"
+                          value={orderForm.lastName}
+                          onChange={(e) => handleOrderFormChange('lastName', e.target.value)}
+                          placeholder="Введите фамилию"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mt-4">
+                      <div>
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={orderForm.email}
+                          onChange={(e) => handleOrderFormChange('email', e.target.value)}
+                          placeholder="your@email.com"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="phone">Телефон</Label>
+                        <Input
+                          id="phone"
+                          value={orderForm.phone}
+                          onChange={(e) => handleOrderFormChange('phone', e.target.value)}
+                          placeholder="+7 (999) 123-45-67"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Адрес доставки</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="address">Адрес</Label>
+                        <Input
+                          id="address"
+                          value={orderForm.address}
+                          onChange={(e) => handleOrderFormChange('address', e.target.value)}
+                          placeholder="Улица, дом, квартира"
+                          required
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="city">Город</Label>
+                          <Input
+                            id="city"
+                            value={orderForm.city}
+                            onChange={(e) => handleOrderFormChange('city', e.target.value)}
+                            placeholder="Москва"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="postalCode">Почтовый индекс</Label>
+                          <Input
+                            id="postalCode"
+                            value={orderForm.postalCode}
+                            onChange={(e) => handleOrderFormChange('postalCode', e.target.value)}
+                            placeholder="123456"
+                            maxLength={6}
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">
+                      <Icon name="CreditCard" size={20} className="inline mr-2" />
+                      Данные карты
+                    </h3>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="cardHolder">Имя держателя карты</Label>
+                        <Input
+                          id="cardHolder"
+                          value={orderForm.cardHolder}
+                          onChange={(e) => handleOrderFormChange('cardHolder', e.target.value)}
+                          placeholder="IVAN PETROV"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="cardNumber">Номер карты</Label>
+                        <Input
+                          id="cardNumber"
+                          value={orderForm.cardNumber}
+                          onChange={(e) => handleOrderFormChange('cardNumber', e.target.value)}
+                          placeholder="1234 5678 9012 3456"
+                          maxLength={19}
+                          required
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="expiryDate">Срок действия</Label>
+                          <Input
+                            id="expiryDate"
+                            value={orderForm.expiryDate}
+                            onChange={(e) => handleOrderFormChange('expiryDate', e.target.value)}
+                            placeholder="MM/YY"
+                            maxLength={5}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="cvv">CVV</Label>
+                          <Input
+                            id="cvv"
+                            value={orderForm.cvv}
+                            onChange={(e) => handleOrderFormChange('cvv', e.target.value)}
+                            placeholder="123"
+                            maxLength={3}
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Сводка заказа */}
+              <div className="space-y-6">
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-semibold mb-4">Ваш заказ</h3>
+                    <div className="space-y-4">
+                      {cartItems.map((item, index) => {
+                        const product = products.find(p => p.id === item.productId)
+                        if (!product) return null
+                        
+                        return (
+                          <div key={`${item.productId}-${item.color}-${item.storage}-${index}`} className="flex justify-between items-start">
+                            <div className="flex gap-3">
+                              <div className="w-12 h-12 bg-gray-50 rounded p-1">
+                                <img
+                                  src={product.image}
+                                  alt={product.name}
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm">{product.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {item.color}, {item.storage}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Количество: {item.quantity}
+                                </p>
+                              </div>
+                            </div>
+                            <p className="font-semibold text-sm">
+                              {formatPrice(product.price * item.quantity)}
+                            </p>
+                          </div>
+                        )
+                      })}
+                    </div>
+                    
+                    <div className="border-t pt-4 mt-4 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Товары ({getCartItemsCount()} шт.)</span>
+                        <span>{formatPrice(getCartTotal())}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Доставка</span>
+                        <span>Бесплатно</span>
+                      </div>
+                      <div className="flex justify-between text-lg font-bold border-t pt-2">
+                        <span>Итого</span>
+                        <span>{formatPrice(getCartTotal())}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => setActiveSection('cart')}
+                    className="flex-1"
+                  >
+                    <Icon name="ArrowLeft" size={16} className="mr-2" />
+                    Назад в корзину
+                  </Button>
+                  <Button
+                    onClick={processOrder}
+                    disabled={isProcessingOrder || !orderForm.firstName || !orderForm.lastName || !orderForm.email || !orderForm.phone || !orderForm.address || !orderForm.city || !orderForm.cardNumber || !orderForm.expiryDate || !orderForm.cvv || !orderForm.cardHolder}
+                    className="flex-1"
+                  >
+                    {isProcessingOrder ? (
+                      <>
+                        <Icon name="Loader2" size={16} className="mr-2 animate-spin" />
+                        Обработка...
+                      </>
+                    ) : (
+                      <>
+                        <Icon name="Check" size={16} className="mr-2" />
+                        Оплатить {formatPrice(getCartTotal())}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         )
 
