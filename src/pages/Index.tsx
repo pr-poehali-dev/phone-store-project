@@ -30,6 +30,13 @@ interface User {
   phone: string
 }
 
+interface CartItem {
+  productId: number
+  color: string
+  storage: string
+  quantity: number
+}
+
 type SortOption = 'default' | 'price-asc' | 'price-desc' | 'popularity' | 'new'
 
 const products: Product[] = [
@@ -180,11 +187,14 @@ const products: Product[] = [
 function Index() {
   const [activeSection, setActiveSection] = useState('catalog')
   const [selectedBrand, setSelectedBrand] = useState<'all' | 'Apple' | 'Samsung'>('all')
-  const [cartItems, setCartItems] = useState<number[]>([])
+  const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [sortBy, setSortBy] = useState<SortOption>('default')
   const [user, setUser] = useState<User | null>(null)
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login')
   const [authForm, setAuthForm] = useState({ name: '', email: '', phone: '', password: '' })
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [selectedColor, setSelectedColor] = useState('')
+  const [selectedStorage, setSelectedStorage] = useState('')
 
   const filteredAndSortedProducts = () => {
     const filtered = selectedBrand === 'all' 
@@ -205,12 +215,78 @@ function Index() {
     }
   }
 
-  const addToCart = (productId: number) => {
+  const openProductDialog = (product: Product) => {
     if (!user) {
       alert('Войдите в аккаунт для добавления товаров в корзину')
       return
     }
-    setCartItems(prev => [...prev, productId])
+    setSelectedProduct(product)
+    setSelectedColor(product.colors[0])
+    setSelectedStorage(product.storage[0])
+  }
+
+  const addToCart = () => {
+    if (!selectedProduct || !selectedColor || !selectedStorage) return
+    
+    const existingItem = cartItems.find(
+      item => 
+        item.productId === selectedProduct.id && 
+        item.color === selectedColor && 
+        item.storage === selectedStorage
+    )
+    
+    if (existingItem) {
+      setCartItems(prev => 
+        prev.map(item => 
+          item.productId === selectedProduct.id && 
+          item.color === selectedColor && 
+          item.storage === selectedStorage
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        )
+      )
+    } else {
+      setCartItems(prev => [...prev, {
+        productId: selectedProduct.id,
+        color: selectedColor,
+        storage: selectedStorage,
+        quantity: 1
+      }])
+    }
+    
+    setSelectedProduct(null)
+  }
+
+  const removeFromCart = (productId: number, color: string, storage: string) => {
+    setCartItems(prev => prev.filter(
+      item => !(item.productId === productId && item.color === color && item.storage === storage)
+    ))
+  }
+
+  const updateQuantity = (productId: number, color: string, storage: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      removeFromCart(productId, color, storage)
+      return
+    }
+    
+    setCartItems(prev => 
+      prev.map(item => 
+        item.productId === productId && item.color === color && item.storage === storage
+          ? { ...item, quantity: newQuantity }
+          : item
+      )
+    )
+  }
+
+  const getCartTotal = () => {
+    return cartItems.reduce((total, item) => {
+      const product = products.find(p => p.id === item.productId)
+      return total + (product ? product.price * item.quantity : 0)
+    }, 0)
+  }
+
+  const getCartItemsCount = () => {
+    return cartItems.reduce((total, item) => total + item.quantity, 0)
   }
 
   const handleAuth = (e: React.FormEvent) => {
@@ -372,9 +448,9 @@ function Index() {
                     <Button
                       className="w-full"
                       disabled={!product.inStock}
-                      onClick={() => addToCart(product.id)}
+                      onClick={() => openProductDialog(product)}
                     >
-                      {product.inStock ? 'Купить' : 'Нет в наличии'}
+                      {product.inStock ? 'Добавить в корзину' : 'Нет в наличии'}
                     </Button>
                   </CardContent>
                 </Card>
@@ -385,14 +461,122 @@ function Index() {
 
       case 'cart':
         return (
-          <div className="text-center space-y-4">
-            <h2 className="text-2xl font-bold">Корзина</h2>
-            <div className="flex items-center justify-center gap-2">
-              <Icon name="ShoppingCart" size={24} />
-              <p className="text-lg">В корзине {cartItems.length} товаров</p>
+          <div className="max-w-4xl mx-auto space-y-6">
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-bold">Корзина</h2>
+              {user && <p className="text-muted-foreground">Пользователь: {user.name}</p>}
             </div>
-            {user && <p className="text-muted-foreground">Пользователь: {user.name}</p>}
-            <p className="text-muted-foreground">Функционал корзины в разработке</p>
+            
+            {cartItems.length === 0 ? (
+              <div className="text-center py-12">
+                <Icon name="ShoppingCart" size={48} className="mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-muted-foreground mb-2">Корзина пуста</h3>
+                <p className="text-muted-foreground mb-4">Добавьте товары из каталога</p>
+                <Button onClick={() => setActiveSection('catalog')}>
+                  Перейти в каталог
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  {cartItems.map((item, index) => {
+                    const product = products.find(p => p.id === item.productId)
+                    if (!product) return null
+                    
+                    return (
+                      <Card key={`${item.productId}-${item.color}-${item.storage}-${index}`} className="overflow-hidden">
+                        <CardContent className="p-6">
+                          <div className="flex gap-6">
+                            <div className="w-24 h-24 bg-gray-50 rounded-lg p-2 flex-shrink-0">
+                              <img
+                                src={product.image}
+                                alt={product.name}
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                            
+                            <div className="flex-1 space-y-3">
+                              <div>
+                                <h3 className="font-semibold text-lg">{product.name}</h3>
+                                <p className="text-sm text-muted-foreground">{product.brand}</p>
+                              </div>
+                              
+                              <div className="flex gap-4 text-sm">
+                                <div>
+                                  <span className="font-medium">Цвет: </span>
+                                  <span className="text-muted-foreground">{item.color}</span>
+                                </div>
+                                <div>
+                                  <span className="font-medium">Память: </span>
+                                  <span className="text-muted-foreground">{item.storage}</span>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => updateQuantity(item.productId, item.color, item.storage, item.quantity - 1)}
+                                  >
+                                    <Icon name="Minus" size={14} />
+                                  </Button>
+                                  <span className="w-8 text-center">{item.quantity}</span>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => updateQuantity(item.productId, item.color, item.storage, item.quantity + 1)}
+                                  >
+                                    <Icon name="Plus" size={14} />
+                                  </Button>
+                                </div>
+                                
+                                <div className="text-right">
+                                  <p className="text-lg font-bold">{formatPrice(product.price * item.quantity)}</p>
+                                  {item.quantity > 1 && (
+                                    <p className="text-sm text-muted-foreground">
+                                      {formatPrice(product.price)} за шт.
+                                    </p>
+                                  )}
+                                </div>
+                                
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeFromCart(item.productId, item.color, item.storage)}
+                                  className="text-red-500 hover:text-red-700"
+                                >
+                                  <Icon name="Trash2" size={16} />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+                </div>
+                
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center text-lg">
+                        <span className="font-semibold">Итого товаров:</span>
+                        <span>{getCartItemsCount()} шт.</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xl font-bold">
+                        <span>К оплате:</span>
+                        <span>{formatPrice(getCartTotal())}</span>
+                      </div>
+                      <Button className="w-full" size="lg">
+                        <Icon name="CreditCard" size={20} className="mr-2" />
+                        Оформить заказ
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
         )
 
@@ -531,7 +715,7 @@ function Index() {
                     {item.label}
                     {item.id === 'cart' && cartItems.length > 0 && (
                       <Badge variant="secondary" className="ml-1 bg-accent text-accent-foreground">
-                        {cartItems.length}
+                        {getCartItemsCount()}
                       </Badge>
                     )}
                   </button>
@@ -627,6 +811,75 @@ function Index() {
       <main className="container mx-auto px-4 py-12">
         {renderSection()}
       </main>
+
+      {/* Product Selection Dialog */}
+      {selectedProduct && (
+        <Dialog open={!!selectedProduct} onOpenChange={() => setSelectedProduct(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Выберите характеристики</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6">
+              <div className="text-center">
+                <div className="w-32 h-32 bg-gray-50 rounded-lg p-4 mx-auto mb-4">
+                  <img
+                    src={selectedProduct.image}
+                    alt={selectedProduct.name}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <h3 className="font-semibold text-lg">{selectedProduct.name}</h3>
+                <p className="text-muted-foreground">{selectedProduct.brand}</p>
+                <p className="text-xl font-bold mt-2">{formatPrice(selectedProduct.price)}</p>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-medium">Цвет</Label>
+                  <Select value={selectedColor} onValueChange={setSelectedColor}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedProduct.colors.map((color) => (
+                        <SelectItem key={color} value={color}>
+                          {color}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium">Объем памяти</Label>
+                  <Select value={selectedStorage} onValueChange={setSelectedStorage}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {selectedProduct.storage.map((storage) => (
+                        <SelectItem key={storage} value={storage}>
+                          {storage}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <Button variant="outline" onClick={() => setSelectedProduct(null)} className="flex-1">
+                  Отмена
+                </Button>
+                <Button onClick={addToCart} className="flex-1">
+                  <Icon name="ShoppingCart" size={16} className="mr-2" />
+                  Добавить в корзину
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       <footer className="border-t bg-secondary/30 mt-20">
         <div className="container mx-auto px-4 py-8">
