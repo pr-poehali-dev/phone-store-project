@@ -224,7 +224,7 @@ function Index() {
   })
   const [isProcessingOrder, setIsProcessingOrder] = useState(false)
 
-  const filteredAndSortedProducts = () => {
+  const getFilteredProducts = () => {
     const filtered = selectedBrand === 'all' 
       ? products 
       : products.filter(product => product.brand === selectedBrand)
@@ -242,6 +242,8 @@ function Index() {
         return filtered
     }
   }
+
+  const filteredAndSortedProducts = getFilteredProducts
 
   const openProductDialog = (product: Product) => {
     if (!user) {
