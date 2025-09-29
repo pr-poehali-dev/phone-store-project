@@ -421,44 +421,119 @@ function Index() {
               </p>
             </div>
 
-            <div className="flex flex-col lg:flex-row justify-center items-center gap-4">
-              <div className="flex gap-4">
-                <Button
-                  variant={selectedBrand === 'all' ? 'default' : 'outline'}
-                  onClick={() => setSelectedBrand('all')}
-                  className="min-w-24"
-                >
-                  Все
-                </Button>
-                <Button
-                  variant={selectedBrand === 'Apple' ? 'default' : 'outline'}
-                  onClick={() => setSelectedBrand('Apple')}
-                  className="min-w-24"
-                >
-                  Apple
-                </Button>
-                <Button
-                  variant={selectedBrand === 'Samsung' ? 'default' : 'outline'}
-                  onClick={() => setSelectedBrand('Samsung')}
-                  className="min-w-24"
-                >
-                  Samsung
-                </Button>
-              </div>
-              
-              <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Сортировка" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="default">По умолчанию</SelectItem>
-                  <SelectItem value="price-asc">Цена: по возрастанию</SelectItem>
-                  <SelectItem value="price-desc">Цена: по убыванию</SelectItem>
-                  <SelectItem value="popularity">Популярность</SelectItem>
-                  <SelectItem value="new">Новинки</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Card className="bg-gradient-to-r from-background/50 to-secondary/20 border-2">
+              <CardContent className="p-6">
+                <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
+                  <div className="space-y-3 flex-1">
+                    <div className="flex items-center gap-2">
+                      <Icon name="Filter" size={18} className="text-primary" />
+                      <h3 className="font-medium">Фильтры по брендам</h3>
+                    </div>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        className={`px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-105 ${
+                          selectedBrand === 'all' 
+                            ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25' 
+                            : 'bg-secondary/80 text-secondary-foreground hover:bg-secondary hover:shadow-md'
+                        }`}
+                        onClick={() => setSelectedBrand('all')}
+                      >
+                        <Icon name="Grid3X3" size={16} className="inline mr-2" />
+                        Все бренды
+                      </button>
+                      <button
+                        className={`px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-105 ${
+                          selectedBrand === 'Apple' 
+                            ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25' 
+                            : 'bg-secondary/80 text-secondary-foreground hover:bg-secondary hover:shadow-md'
+                        }`}
+                        onClick={() => setSelectedBrand('Apple')}
+                      >
+                        <Icon name="Apple" size={16} className="inline mr-2" />
+                        Apple
+                      </button>
+                      <button
+                        className={`px-6 py-3 rounded-xl text-sm font-medium transition-all duration-300 transform hover:scale-105 ${
+                          selectedBrand === 'Samsung' 
+                            ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25' 
+                            : 'bg-secondary/80 text-secondary-foreground hover:bg-secondary hover:shadow-md'
+                        }`}
+                        onClick={() => setSelectedBrand('Samsung')}
+                      >
+                        <Icon name="Smartphone" size={16} className="inline mr-2" />
+                        Samsung
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3 min-w-fit">
+                    <div className="flex items-center gap-2">
+                      <Icon name="ArrowUpDown" size={18} className="text-primary" />
+                      <h3 className="font-medium">Сортировка</h3>
+                    </div>
+                    <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+                      <SelectTrigger className="w-64 h-12 shadow-md border-2 border-border/50 hover:border-primary/30 transition-all duration-200 rounded-xl bg-background">
+                        <SelectValue placeholder="Сортировка" />
+                      </SelectTrigger>
+                      <SelectContent className="w-64 rounded-xl">
+                        <SelectItem value="default" className="hover:bg-secondary/50 rounded-lg mx-1">
+                          <div className="flex items-center gap-2">
+                            <Icon name="RotateCcw" size={16} />
+                            По умолчанию
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="price-asc" className="hover:bg-secondary/50 rounded-lg mx-1">
+                          <div className="flex items-center gap-2">
+                            <Icon name="TrendingUp" size={16} />
+                            Цена: по возрастанию
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="price-desc" className="hover:bg-secondary/50 rounded-lg mx-1">
+                          <div className="flex items-center gap-2">
+                            <Icon name="TrendingDown" size={16} />
+                            Цена: по убыванию
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="popularity" className="hover:bg-secondary/50 rounded-lg mx-1">
+                          <div className="flex items-center gap-2">
+                            <Icon name="Heart" size={16} />
+                            Популярность
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="new" className="hover:bg-secondary/50 rounded-lg mx-1">
+                          <div className="flex items-center gap-2">
+                            <Icon name="Sparkles" size={16} />
+                            Новинки
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                {/* Статистика */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-6 pt-4 border-t border-border/30 gap-3">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1 bg-secondary/50 px-3 py-1 rounded-full">
+                      <Icon name="Package" size={16} />
+                      <span>Найдено: {getFilteredProducts().length} товаров</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 text-sm">
+                    <div className="flex items-center gap-1 bg-primary/10 px-3 py-1 rounded-full text-primary">
+                      <Icon name="ShoppingCart" size={16} />
+                      <span>В корзине: {getCartItemsCount()}</span>
+                    </div>
+                    {getCartItemsCount() > 0 && (
+                      <div className="flex items-center gap-1 bg-green-100 dark:bg-green-900/30 px-3 py-1 rounded-full text-green-700 dark:text-green-300">
+                        <Icon name="DollarSign" size={16} />
+                        <span>{formatPrice(getCartTotal())}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {filteredAndSortedProducts().map((product) => (
